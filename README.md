@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # flask-ci-app
+=======
+# flask-ci-demo
+>>>>>>> ea26bcf (İlk commit)
 
 
 
@@ -15,14 +19,22 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
+<<<<<<< HEAD
 git remote add origin http://192.168.11.140/root/flask-ci-app.git
+=======
+git remote add origin http://192.168.11.140/root/flask-ci-demo.git
+>>>>>>> ea26bcf (İlk commit)
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
+<<<<<<< HEAD
 - [ ] [Set up project integrations](http://192.168.11.140/root/flask-ci-app/-/settings/integrations)
+=======
+- [ ] [Set up project integrations](http://192.168.11.140/root/flask-ci-demo/-/settings/integrations)
+>>>>>>> ea26bcf (İlk commit)
 
 ## Collaborate with your team
 

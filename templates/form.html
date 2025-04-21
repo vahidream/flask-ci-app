@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <title>İstifadəçi Əlavə Et</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <h2 class="mb-4">Yeni İstifadəçi Əlavə Et</h2>
+    <form method="POST" action="/add_user">
+        <div class="mb-3">
+            <label class="form-label">Ad</label>
+            <input name="first_name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Soyad</label>
+            <input name="last_name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Telefon</label>
+            <input name="phone" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Şirkət</label>
+            <input name="company" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Vəzifə</label>
+            <input name="position" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Əlavə et</button>
+    </form>
+</div>
+</body>
+</html>
+
