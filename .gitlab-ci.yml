@@ -1,5 +1,7 @@
 stages:
   - build
+  - sast
+  - upload
   - deploy
 
 variables:
@@ -29,6 +31,33 @@ build:
     - docker info
     - echo "Building Docker image..."
     - docker build -t $DOCKER_IMAGE .
+
+sast_scan:
+  stage: sast
+  image: snyk/snyk:alpine
+  script:
+    - snyk auth "$SNYK_TOKEN"
+    - snyk code test --json > sast.json
+  artifacts:
+    paths:
+      - sast.json
+
+upload_to_defectdojo:
+  stage: upload
+  image: curlimages/curl:latest
+  script:
+    - |
+      curl -X POST "http://$DEFECTDOJO_HOST:8888/api/v2/import-scan/" \
+      -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
+      -F "scan_type=Snyk SAST" \
+      -F "minimum_severity=Low" \
+      -F "verified=true" \
+      -F "active=true" \
+      -F "engagement=$DEFECTDOJO_ENGAGEMENT_ID" \
+      -F "product_name=$DEFECTDOJO_PRODUCT_NAME" \
+      -F "file=@sast.json"
+  dependencies:
+    - sast_scan
 
 deploy:
   stage: deploy
