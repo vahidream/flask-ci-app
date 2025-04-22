@@ -1,10 +1,12 @@
 stages:
+  - build
   - deploy
 
 variables:
   DEPLOY_SERVER: "192.168.11.139"
   DEPLOY_USER: "deployuser"
   DEPLOY_PATH: "/home/deployuser/flask-ci-app"
+  DOCKER_IMAGE: "flask-ci-app"
 
 before_script:
   - 'which ssh-agent || ( apk add --no-cache openssh-client )'
@@ -12,15 +14,30 @@ before_script:
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
-  - apk add --no-cache openssh-client rsync  # Install required tools
+  - apk add --no-cache openssh-client rsync
   - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
   - chmod 644 ~/.ssh/known_hosts
+
+build:
+  stage: build
+  tags:
+    - flask
+    - docker
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKER_IMAGE .
+  artifacts:
+    paths:
+      - ./
+    expire_in: 1 hour
 
 deploy:
   stage: deploy
   tags:
     - flask
     - docker
+  dependencies:
+    - build
   script:
     - echo "Starting deployment to $DEPLOY_SERVER"
     - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
