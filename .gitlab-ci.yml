@@ -16,13 +16,17 @@ before_script:
 
 build:
   stage: build
+  tags:
+    - flaskci
   script:
-    - echo "Build mərhələsi - Dockerfile yoxlanılır"
-    - docker build -t flask-ci-demo .
+    - echo "Docker image build edilir"
+    - docker build -t flask-ci-app .
 
 deploy:
   stage: deploy
+  tags:
+    - flaskci
   script:
-    - echo "Deploy serverinə kod göndərilir"
+    - echo "Deploy serverinə göndərilir"
     - ssh $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && git pull origin main && docker-compose down -v && docker-compose up --build -d"
 
