@@ -45,6 +45,7 @@ sast_scan:
     paths:
       - sast.json
 
+
 upload_to_defectdojo:
   stage: upload
   tags:
