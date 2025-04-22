@@ -7,11 +7,10 @@ variables:
   DEPLOY_PATH: "/home/deployuser/flask-ci-app"
 
 before_script:
-  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-  - eval $(ssh-agent -s)
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
   - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
 
 deploy:
