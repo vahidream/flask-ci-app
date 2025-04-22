@@ -1,32 +1,22 @@
 stages:
-  - build
   - deploy
 
 variables:
-  DEPLOY_SERVER: 192.168.11.139
-  DEPLOY_USER: deployuser
-  DEPLOY_PATH: /home/deployuser/flask-ci-app
+  DEPLOY_SERVER: "192.168.11.139"
+  DEPLOY_USER: "deployuser"
+  DEPLOY_PATH: "/home/deployuser/flask-ci-app"
 
 before_script:
   - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
   - eval $(ssh-agent -s)
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
   - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
-
-build:
-  stage: build
-  tags:
-    - flaskci
-  script:
-    - echo "Docker image build edilir"
-    - docker build -t flask-ci-app .
 
 deploy:
   stage: deploy
-  tags:
-    - flaskci
   script:
-    - echo "Deploy serverinə göndərilir"
-    - ssh $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && git pull origin main && docker-compose down -v && docker-compose up --build -d"
-
+    - echo "Deploy edilir..."
+    - rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
+    - ssh $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && docker-compose down && docker-compose up --build -d"
