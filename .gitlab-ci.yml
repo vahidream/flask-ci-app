@@ -1,21 +1,27 @@
+stages:
+  - deploy
+
+variables:
+  DEPLOY_SERVER: "192.168.11.139"
+  DEPLOY_USER: "deployuser"
+  DEPLOY_PATH: "/home/deployuser/flask-ci-app"
+
+before_script:
+  - 'which ssh-agent || ( apk add --no-cache openssh-client )'
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - apk add --no-cache openssh-client rsync  # Install required tools
+  - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
+  - chmod 644 ~/.ssh/known_hosts
+
 deploy:
   stage: deploy
   tags:
     - flask
     - docker
-  before_script:
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    # Install rsync
-    - apk add --no-cache rsync  # For alpine-based images
-    # OR for debian-based:
-    - apt-get update -y && apt-get install -y rsync
   script:
     - echo "Starting deployment to $DEPLOY_SERVER"
     - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
-    - ssh $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && docker-compose down && docker-compose up --build -d"
+    - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && docker-compose down && docker-compose up --build -d"
