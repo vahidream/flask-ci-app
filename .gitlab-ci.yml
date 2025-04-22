@@ -24,8 +24,8 @@ before_script:
 build:
   stage: build
   tags:
-  - flask
-  - docker
+    - flask
+    - docker
   script:
     - echo "Verifying Docker connection..."
     - docker info
@@ -34,6 +34,9 @@ build:
 
 sast_scan:
   stage: sast
+  tags:
+    - flask
+    - docker
   image: snyk/snyk:alpine
   script:
     - snyk auth "$SNYK_TOKEN"
@@ -44,6 +47,9 @@ sast_scan:
 
 upload_to_defectdojo:
   stage: upload
+  tags:
+    - flask
+    - docker
   image: curlimages/curl:latest
   script:
     - |
