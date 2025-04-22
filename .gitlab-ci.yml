@@ -23,9 +23,6 @@ before_script:
 
 build:
   stage: build
-  tags:
-    - flask
-    - docker
   script:
     - echo "Verifying Docker connection..."
     - docker info
