@@ -9,7 +9,7 @@ variables:
   DEPLOY_USER: "deployuser"
   DEPLOY_PATH: "/home/flask-ci-app"
   DOCKER_IMAGE: "flask-ci-app"
-  DOCKER_HOST: "unix:///var/run/docker.sock"
+  DEFECTDOJO_HOST: "host.docker.internal"
 
 before_script:
   - 'which ssh-agent || ( apk add --no-cache openssh-client )'
@@ -27,36 +27,28 @@ build:
     - flask
     - docker
   script:
-    - echo "Verifying Docker connection..."
+    - echo "🔨 Docker bağlantısı yoxlanılır..."
     - docker info
-    - echo "Building Docker image..."
+    - echo "📦 Docker image build olunur..."
     - docker build -t $DOCKER_IMAGE .
-    
+
 sast_scan:
   stage: sast
   tags:
     - flask
     - docker
   image: python:3.11-slim
-  allow_failure: true  # ✅ sadəcə true yazılır
+  allow_failure: true
   before_script:
     - apt-get update && apt-get install -y curl unzip
     - curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux
     - chmod +x snyk && mv snyk /usr/local/bin/
   script:
     - snyk auth "$SNYK_TOKEN"
-    - snyk code test --json > sast.json || true  # ✅ burda true ilə davam etdiririk
+    - snyk code test --json > sast.json || true
   artifacts:
     paths:
       - sast.json
-
-
-
-
-
-
-
-
 
 upload_to_defectdojo:
   stage: upload
@@ -66,6 +58,7 @@ upload_to_defectdojo:
   image: curlimages/curl:latest
   script:
     - |
+      echo "⬆️ SAST nəticələri DefectDojo'ya göndərilir..."
       curl -X POST "http://$DEFECTDOJO_HOST:8888/api/v2/import-scan/" \
       -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
       -F "scan_type=Snyk SAST" \
@@ -84,6 +77,6 @@ deploy:
     - flask
     - docker
   script:
-    - echo "Starting deployment to $DEPLOY_SERVER"
+    - echo "🚀 Deploy başlayır..."
     - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
     - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && docker-compose down && docker-compose up --build -d"
