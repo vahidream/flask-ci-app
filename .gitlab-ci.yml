@@ -38,7 +38,7 @@ sast_scan:
     - flask
     - docker
   image: snyk/snyk:alpine
-  entrypoint: [""]
+  entrypoint: ""
   script:
     - snyk auth "$SNYK_TOKEN"
     - snyk code test --json > sast.json
