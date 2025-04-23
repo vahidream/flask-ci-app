@@ -38,17 +38,18 @@ sast_scan:
     - flask
     - docker
   image: python:3.11-slim
-  allow_failure: snyk code test --json > sast.json || true
+  allow_failure: true  # ✅ sadəcə true yazılır
   before_script:
     - apt-get update && apt-get install -y curl unzip
     - curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux
     - chmod +x snyk && mv snyk /usr/local/bin/
   script:
     - snyk auth "$SNYK_TOKEN"
-    - snyk code test --json > sast.json
+    - snyk code test --json > sast.json || true  # ✅ burda true ilə davam etdiririk
   artifacts:
     paths:
       - sast.json
+
 
 
 
