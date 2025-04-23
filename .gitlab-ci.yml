@@ -31,7 +31,7 @@ build:
     - docker info
     - echo "Building Docker image..."
     - docker build -t $DOCKER_IMAGE .
-
+    
 sast_scan:
   stage: sast
   tags:
@@ -49,6 +49,7 @@ sast_scan:
   artifacts:
     paths:
       - sast.json
+
 
 
 
