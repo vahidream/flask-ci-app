@@ -5,9 +5,9 @@ stages:
   - deploy
 
 variables:
-  DEPLOY_SERVER: "192.168.11.139"
+  DEPLOY_SERVER: "192.168.11.140"
   DEPLOY_USER: "deployuser"
-  DEPLOY_PATH: "/home/deployuser/flask-ci-app"
+  DEPLOY_PATH: "/home/flask-ci-app"
   DOCKER_IMAGE: "flask-ci-app"
   DOCKER_HOST: "unix:///var/run/docker.sock"
 
