@@ -37,15 +37,16 @@ sast_scan:
   tags:
     - flask
     - docker
-  image: snyk/snyk:alpine
-  script:
-    - sh -c "snyk auth \"$SNYK_TOKEN\" && snyk code test --json > sast.json"
+  image:
+    name: snyk/snyk-cli
+    entrypoint: [""]
   script:
     - snyk auth "$SNYK_TOKEN"
     - snyk code test --json > sast.json
   artifacts:
     paths:
       - sast.json
+
 
 
 upload_to_defectdojo:
