@@ -37,15 +37,19 @@ sast_scan:
   tags:
     - flask
     - docker
-  image:
-    name: snyk/snyk-cli:1.1220.0
-    entrypoint: [""]
+  image: python:3.11-slim
+  before_script:
+    - apt-get update && apt-get install -y curl unzip
+    - curl -Lo snyk.zip https://static.snyk.io/cli/latest/snyk-linux
+    - mv snyk-linux /usr/local/bin/snyk
+    - chmod +x /usr/local/bin/snyk
   script:
     - snyk auth "$SNYK_TOKEN"
     - snyk code test --json > sast.json
   artifacts:
     paths:
       - sast.json
+
 
 
 
