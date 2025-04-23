@@ -38,7 +38,7 @@ sast_scan:
     - flask
     - docker
   image: python:3.11-slim
-  allow_failure: true
+  allow_failure: snyk code test --json > sast.json || true
   before_script:
     - apt-get update && apt-get install -y curl unzip
     - curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux
