@@ -38,7 +38,7 @@ sast_scan:
     - flask
     - docker
   image:
-    name: snyk/snyk-cli
+    name: snyk/snyk-cli:1.1220.0
     entrypoint: [""]
   script:
     - snyk auth "$SNYK_TOKEN"
@@ -46,6 +46,7 @@ sast_scan:
   artifacts:
     paths:
       - sast.json
+
 
 
 
