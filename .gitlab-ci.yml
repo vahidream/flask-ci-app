@@ -11,21 +11,20 @@ variables:
   DOCKER_IMAGE: "flask-ci-app"
   DEFECTDOJO_HOST: "host.docker.internal"
 
-before_script:
-  - 'which ssh-agent || ( apk add --no-cache openssh-client )'
-  - eval $(ssh-agent -s)
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-  - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  - apk add --no-cache openssh-client rsync
-  - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
-  - chmod 644 ~/.ssh/known_hosts
-
 build:
   stage: build
   tags:
     - flask
     - docker
+  before_script:
+    - 'which ssh-agent || ( apk add --no-cache openssh-client )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - apk add --no-cache openssh-client rsync
+    - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "🔨 Docker bağlantısı yoxlanılır..."
     - docker info
@@ -58,7 +57,7 @@ upload_to_defectdojo:
   image: curlimages/curl:latest
   script:
     - |
-      echo "Uploading Snyk SAST results to DefectDojo..."
+      echo "📤 Uploading Snyk SAST results to DefectDojo..."
       curl -X POST "http://$DEFECTDOJO_HOST:8888/api/v2/import-scan/" \
       -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
       -F "scan_type=Snyk SAST" \
@@ -73,13 +72,20 @@ upload_to_defectdojo:
   artifacts:
     when: always
 
-
-
 deploy:
   stage: deploy
   tags:
     - flask
     - docker
+  before_script:
+    - 'which ssh-agent || ( apk add --no-cache openssh-client )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - apk add --no-cache openssh-client rsync
+    - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "🚀 Deploy başlayır..."
     - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
