@@ -58,7 +58,7 @@ upload_to_defectdojo:
   image: curlimages/curl:latest
   script:
     - |
-      echo "⬆️ SAST nəticələri DefectDojo'ya göndərilir..."
+      echo "Uploading Snyk SAST results to DefectDojo..."
       curl -X POST "http://$DEFECTDOJO_HOST:8888/api/v2/import-scan/" \
       -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
       -F "scan_type=Snyk SAST" \
@@ -70,6 +70,9 @@ upload_to_defectdojo:
       -F "file=@sast.json"
   dependencies:
     - sast_scan
+  artifacts:
+    when: always
+
 
 deploy:
   stage: deploy
