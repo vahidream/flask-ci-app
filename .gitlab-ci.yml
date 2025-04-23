@@ -87,3 +87,7 @@ deploy:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
     - chmod 644 ~/.ssh/known_hosts
+  script:
+    - echo "🚀 Deploy başlayır..."
+    - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
+    - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && docker-compose down && docker-compose up --build -d"
