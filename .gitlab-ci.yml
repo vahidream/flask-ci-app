@@ -2,34 +2,26 @@ stages:
   - build
   - sast
   - upload
+  - docker_push
   - deploy
 
 variables:
   DEPLOY_SERVER: "192.168.11.140"
   DEPLOY_USER: "deployuser"
   DEPLOY_PATH: "/home/flask-ci-app"
-  DOCKER_IMAGE: "flask-ci-app"
-  DEFECTDOJO_HOST: "host.docker.internal"
+  DOCKER_IMAGE: "vahidevs/flask-ci-app"
+  DEFECTDOJO_HOST: "192.168.11.140"
 
 build:
   stage: build
   tags:
     - flask
     - docker
-  before_script:
-    - 'which ssh-agent || ( apk add --no-cache openssh-client )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - apk add --no-cache openssh-client rsync
-    - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
-    - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "🔨 Docker bağlantısı yoxlanılır..."
     - docker info
     - echo "📦 Docker image build olunur..."
-    - docker build -t $DOCKER_IMAGE .
+    - docker build -t $DOCKER_IMAGE:latest .
 
 sast_scan:
   stage: sast
@@ -56,8 +48,8 @@ upload_to_defectdojo:
     - docker
   image: curlimages/curl:latest
   script:
+    - echo "📤 Uploading Snyk SAST results to DefectDojo..."
     - |
-      echo "📤 Uploading Snyk SAST results to DefectDojo..."
       curl -X POST "http://$DEFECTDOJO_HOST:8888/api/v2/import-scan/" \
       -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
       -F "scan_type=Snyk SAST" \
@@ -72,15 +64,26 @@ upload_to_defectdojo:
   artifacts:
     when: always
 
+docker_push:
+  stage: docker_push
+  tags:
+    - flask
+    - docker
+  image: docker:latest
+  before_script:
+    - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
+  script:
+    - echo "📦 Docker image push olunur Docker Hub-a..."
+    - docker push $DOCKER_IMAGE:latest
 
 deploy:
   stage: deploy
   tags:
     - flask
     - docker
-  image: alpine:latest  # ✅ rsync-ə icazə verən bazadan istifadə et
+  image: alpine:latest
   before_script:
-    - apk add --no-cache openssh-client rsync  # ✅ rsync və ssh agenti əlavə et
+    - apk add --no-cache openssh-client rsync
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
@@ -91,3 +94,4 @@ deploy:
     - echo "🚀 Deploy başlayır..."
     - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
     - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER "cd $DEPLOY_PATH && docker-compose down && docker-compose up --build -d"
+
