@@ -1,60 +1,70 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    REMOTE_SERVER = 'jenkinsagent@192.168.11.143'
-    IMAGE_NAME = 'vahidevs/flask-ci-app'
-    SNYK_TOKEN = credentials('snyk_token')
-    DEFECTDOJO_API = 'http://192.168.11.140:8888/api/v2/import-scan/'
-    DEFECTDOJO_TOKEN = '11ae79c57e1f8afd4ced2faa484ac0f3b5630d1e'
-    ENGAGEMENT_ID = '2'
-    PRODUCT_NAME = 'flask-python'
-  }
-
-  stages {
-    stage('Git Checkout') {
-      steps {
-        echo 'Git checkout already done automatically by Jenkins'
-      }
+    environment {
+        IMAGE_NAME = "flask-ci-app"
+        REMOTE_USER = "jenkinsagent"
+        REMOTE_HOST = "192.168.11.143"
+        REMOTE_PROJECT_PATH = "/home/jenkinsagent/flask-ci-app"
     }
 
-    stage('SSH to Remote: Docker Build') {
-      steps {
-        sh '''
-        ssh -o StrictHostKeyChecking=no $REMOTE_SERVER '
-          cd /home/jenkinsagent/flask-ci-app &&
-          docker build -t $IMAGE_NAME .
-        '
-        '''
-      }
-    }
+    stages {
+        stage('Declarative: Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
 
-    stage('SSH to Remote: Snyk Scan') {
-      steps {
-        sh '''
-        ssh -o StrictHostKeyChecking=no $REMOTE_SERVER '
-          cd /home/jenkinsagent/flask-ci-app &&
-          snyk auth $SNYK_TOKEN &&
-          snyk test --docker $IMAGE_NAME --json > sast.json
-        '
-        '''
-      }
-    }
+        stage('Git Checkout') {
+            steps {
+                echo "Git checkout already done automatically by Jenkins"
+            }
+        }
 
-    stage('SSH to Remote: Upload to DefectDojo') {
-      steps {
-        sh '''
-        ssh -o StrictHostKeyChecking=no $REMOTE_SERVER '
-          curl -X POST $DEFECTDOJO_API \
-            -H "Authorization: Token $DEFECTDOJO_TOKEN" \
-            -F engagement=$ENGAGEMENT_ID \
-            -F scan_type="Dependency Scan" \
-            -F file=@/home/jenkinsagent/flask-ci-app/sast.json \
-            -F product_name=$PRODUCT_NAME
-        '
-        '''
-      }
+        stage('SSH to Remote: Docker Build') {
+            steps {
+                sshagent(credentials: ['ssh-to-143']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+                            cd $REMOTE_PROJECT_PATH
+                            docker build -t $IMAGE_NAME .
+                        EOF
+                    '''
+                }
+            }
+        }
+
+        stage('SSH to Remote: Snyk Scan') {
+            steps {
+                sshagent(credentials: ['ssh-to-143']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+                            cd $REMOTE_PROJECT_PATH
+                            snyk test --docker $IMAGE_NAME --file=Dockerfile --json > sast.json
+                        EOF
+                    '''
+                }
+            }
+        }
+
+        stage('SSH to Remote: Upload to DefectDojo') {
+            steps {
+                sshagent(credentials: ['ssh-to-143']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+                            curl -X POST "$DEFECTDOJO_HOST/api/v2/import-scan/" \
+                            -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
+                            -F "file=@$REMOTE_PROJECT_PATH/sast.json" \
+                            -F "engagement=$DEFECTDOJO_ENGAGEMENT_ID" \
+                            -F "scan_type=Dependency Scan" \
+                            -F "minimum_severity=Low" \
+                            -F "active=true" \
+                            -F "verified=true" \
+                            -F "product_name=$DEFECTDOJO_PRODUCT_NAME"
+                        EOF
+                    '''
+                }
+            }
+        }
     }
-  }
 }
-
