@@ -1,5 +1,4 @@
 pipeline {
-<<<<<<< HEAD
     agent any
 
     environment {
@@ -68,7 +67,6 @@ pipeline {
 }
 
 
-=======
   agent any
 
   environment {
@@ -128,4 +126,3 @@ pipeline {
   }
 }
 
->>>>>>> 1a7b3e2 (Add Jenkinsfile for Jenkins pipeline)
