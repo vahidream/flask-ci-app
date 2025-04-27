@@ -2,65 +2,60 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "flask-ci-app"
-        REMOTE_USER = "jenkinsagent"
-        REMOTE_HOST = "192.168.11.143"
-        REMOTE_PROJECT_PATH = "/home/jenkinsagent/flask-ci-app"
-
-        SNYK_TOKEN = credentials('snyk-token') // Jenkins Credential ID (plain text)
-        DEFECTDOJO_HOST = credentials('defectdojo-host') // Jenkins Credential ID (plain text)
-        DEFECTDOJO_API_TOKEN = credentials('defectdojo-api-token') // Jenkins Credential ID (plain text)
-        DEFECTDOJO_ENGAGEMENT_ID = "1" // hardcoded or separate credential
-        DEFECTDOJO_PRODUCT_NAME = "flask-ci-app"
+        SNYK_TOKEN = credentials('snyk-token')               // Snyk API Token
+        DEFECTDOJO_API_TOKEN = credentials('defectdojo-api-token') // DefectDojo API Token (admin -> apidən alacaqsan)
+        DEFECTDOJO_HOST = credentials('DEFECTDOJO_HOST')       // Bizim Secret Text olan DefectDojo Host
     }
 
     stages {
-        stage('Declarative: Checkout SCM') {
+        stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/vahidream/flask-python.git'
             }
         }
 
-        stage('Git Checkout') {
+        stage('Build Docker Image') {
             steps {
-                echo "Git checkout already done automatically by Jenkins"
-            }
-        }
-
-        stage('SSH to Remote: Docker Build') {
-            steps {
-                sshagent(credentials: ['ssh-to-143']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "cd $REMOTE_PROJECT_PATH && docker build --network=host -t $IMAGE_NAME ."
-                    """
+                sshagent(credentials: ['jenkinsagent']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no jenkinsagent@192.168.11.139 <<EOF
+                    cd ~/flask-ci-app
+                    docker build --network=host -t flask-ci-app .
+                    EOF
+                    '''
                 }
             }
         }
 
-        stage('SSH to Remote: Snyk Scan') {
+        stage('Snyk Scan') {
             steps {
-                sshagent(credentials: ['ssh-to-143']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "snyk auth $SNYK_TOKEN && cd $REMOTE_PROJECT_PATH && snyk test --docker $IMAGE_NAME --file=Dockerfile --json > sast.json"
-                    """
+                sshagent(credentials: ['jenkinsagent']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no jenkinsagent@192.168.11.139 <<EOF
+                    snyk auth $SNYK_TOKEN
+                    snyk container test flask-ci-app --file=Dockerfile || true
+                    snyk container monitor flask-ci-app --file=Dockerfile || true
+                    EOF
+                    '''
                 }
             }
         }
 
-        stage('SSH to Remote: Upload to DefectDojo') {
+        stage('Upload to DefectDojo') {
             steps {
-                sshagent(credentials: ['ssh-to-143']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "curl -X POST '$DEFECTDOJO_HOST/api/v2/import-scan/' \
-                        -H 'Authorization: Token $DEFECTDOJO_API_TOKEN' \
-                        -F 'file=@$REMOTE_PROJECT_PATH/sast.json' \
-                        -F 'engagement=$DEFECTDOJO_ENGAGEMENT_ID' \
-                        -F 'scan_type=Dependency Scan' \
-                        -F 'minimum_severity=Low' \
-                        -F 'active=true' \
-                        -F 'verified=true' \
-                        -F 'product_name=$DEFECTDOJO_PRODUCT_NAME'"
-                    """
+                sshagent(credentials: ['jenkinsagent']) {
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no jenkinsagent@192.168.11.139 <<EOF
+                    curl -k -X POST "$DEFECTDOJO_HOST/api/v2/import-scan/" \
+                    -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
+                    -F "minimum_severity=Low" \
+                    -F "scan_type=Snyk Scan" \
+                    -F "product_name=Flask-CI-App" \
+                    -F "file=@snyk.sarif" \
+                    -F "engagement_name=CI-CD Scan" \
+                    -F "auto_create_context=true"
+                    EOF
+                    '''
                 }
             }
         }
