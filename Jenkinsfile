@@ -27,9 +27,7 @@ pipeline {
                     sh '''
                         ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
                             cd $REMOTE_PROJECT_PATH
-                            docker build -t $IMAGE_NAME .
                             docker build --network=host -t $IMAGE_NAME .
-          6f7698a (Fix: add --network=host to docker build)
                         EOF
                     '''
                 }
@@ -42,6 +40,7 @@ pipeline {
                     sh '''
                         ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
                             cd $REMOTE_PROJECT_PATH
+                            snyk auth $SNYK_TOKEN
                             snyk test --docker $IMAGE_NAME --file=Dockerfile --json > sast.json
                         EOF
                     '''
@@ -70,3 +69,4 @@ pipeline {
         }
     }
 }
+
