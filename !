@@ -1,2 +1,10 @@
+<<<<<<< HEAD
 external_url 'http://192.168.11.147'
+=======
+FROM python:3.9-slim
+WORKDIR /app
+COPY . .
+RUN pip install --no-cache-dir flask
+CMD ["python", "app.py"]
+>>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
 
