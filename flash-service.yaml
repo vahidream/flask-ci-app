@@ -1,0 +1,14 @@
+# flask-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  namespace: flask-app
+spec:
+  type: NodePort  # Dış erişim için
+  selector:
+    app: flask-app
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30007  # 30000-32767 arası bir port seçin

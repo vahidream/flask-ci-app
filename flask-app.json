@@ -1,0 +1,21 @@
+{
+    "apiVersion": "v1",
+    "kind": "Namespace",
+    "metadata": {
+        "creationTimestamp": "2025-04-30T17:25:55Z",
+        "labels": {
+            "kubernetes.io/metadata.name": "flask-app"
+        },
+        "name": "flask-app",
+        "resourceVersion": "41927",
+        "uid": "94d47daa-9d09-4180-9440-7d460975a8a3"
+    },
+    "spec": {
+        "finalizers": [
+            "kubernetes"
+        ]
+    },
+    "status": {
+        "phase": "Active"
+    }
+}
