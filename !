@@ -1,10 +1,16 @@
-<<<<<<< HEAD
-external_url 'http://192.168.11.147'
-=======
-FROM python:3.9-slim
-WORKDIR /app
-COPY . .
-RUN pip install --no-cache-dir flask
-CMD ["python", "app.py"]
->>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
+127.0.0.1 localhost
+127.0.1.1 server-VMware-Virtual-Platform
 
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+192.168.11.139   vahidevs.local
+192.168.11.139  taskify.local
+127.0.1.1    ubuntu1
+127.0.0.1   localhost ubuntu1
+192.168.11.147 master147
+192.168.11.148 worker148
+192.168.11.147  master147  
