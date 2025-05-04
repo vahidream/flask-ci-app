@@ -3,19 +3,18 @@ pipeline {
 
   environment {
     // Docker Hub credentials
-    DOCKER_HUB_USR   = credentials('docker-hub-username')
-    DOCKER_HUB_PSW   = credentials('docker-hub-password')
-    // DefectDojo API token and engagement
-    DD_TOKEN         = credentials('defectdojo-api-token')
-    DD_ENGAGEMENT_ID = '5'
-    // DefectDojo host & product
-    DD_HOST          = '192.168.11.147:8084'
-    DD_PRODUCT_NAME  = 'Flask CI App'
+    DOCKER_HUB_USR      = credentials('docker-hub-username')
+    DOCKER_HUB_PSW      = credentials('docker-hub-password')
+    // DefectDojo API token & engagement
+    DD_TOKEN            = credentials('defectdojo-api-token')
+    DD_ENGAGEMENT_ID    = '5'
+    DD_HOST             = '192.168.11.147:8084'
+    DD_PRODUCT_NAME     = 'Flask CI App'
     // Kubernetes kubeconfig (base64-encoded)
-    KUBECONFIG_CONTENT = credentials('kubeconfig-content')
-    K8S_NAMESPACE    = 'flask-app'
+    KUBECONFIG_CONTENT  = credentials('kubeconfig-content')
+    K8S_NAMESPACE       = 'flask-app'
     // Docker image name
-    DOCKER_IMAGE     = 'vahidevs/flask-ci-app'
+    DOCKER_IMAGE        = 'vahidevs/flask-ci-app'
   }
 
   stages {
@@ -29,7 +28,7 @@ pipeline {
       steps {
         // Build Docker image
         sh "docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} ."
-        // Run Trivy scan
+        // Run Trivy scan and output JSON
         sh """
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
