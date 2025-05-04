@@ -1,105 +1,85 @@
 pipeline {
-  agent {
-    kubernetes {
-      label 'flask-ci-agent'
-      defaultContainer 'dind'
-      yaml '''
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: flask-ci-agent
-spec:
-  containers:
-  - name: dind
-    image: docker:20-dind
-    securityContext:
-      privileged: true
-    volumeMounts:
-    - name: docker-sock
-      mountPath: /var/run/docker.sock
-  - name: jnlp
-    image: jenkins/inbound-agent:latest
-    args: ['$(JENKINS_SECRET)', '$(JENKINS_AGENT_NAME)']
-  volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
-      type: Socket
-'''
-    }
-  }
+  agent any
 
   environment {
-    DOCKER_IMAGE             = 'vahidevs/flask-ci-app'
-    DEFECTDOJO_HOST          = 'http://192.168.11.147:8084'
-    DEFECTDOJO_API_TOKEN     = credentials('defectdojo-api-token')
-    DEFECTDOJO_ENGAGEMENT_ID = credentials('defectdojo-engagement-id')
-    DOCKER_HUB_USR           = credentials('docker-hub-username')
-    DOCKER_HUB_PSW           = credentials('docker-hub-password')
-    KUBECONFIG_CONTENT       = credentials('kubeconfig-content')
+    IMAGE_NAME        = 'vahidevs/flask-ci-app'
+    DOCKER_HUB_USR    = credentials('docker-hub-username')
+    DOCKER_HUB_PSW    = credentials('docker-hub-password')
+    DD_TOKEN          = credentials('defectdojo-api-token')
+    DD_ENGAGEMENT_ID  = '5'
+    DD_PRODUCT_ID     = '1'
   }
 
   stages {
-    stage('Build') {
+    stage('Checkout') {
       steps {
-        container('dind') {
-          sh 'docker build -t $DOCKER_IMAGE:${BUILD_NUMBER} .'
-        }
+        checkout scm
       }
     }
 
-    stage('Trivy Scan') {
+    stage('Build & Scan') {
       steps {
-        container('dind') {
-          sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --format json --output trivy-report.json $DOCKER_IMAGE:${BUILD_NUMBER}'
-        }
+        sh '''
+          # build image
+          docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+
+          # static scan
+          trivy image \
+            --format json \
+            --output trivy-report.json \
+            ${IMAGE_NAME}:${BUILD_NUMBER} || true
+        '''
       }
     }
 
     stage('Upload to DefectDojo') {
       steps {
-        container('dind') {
-          sh '''#!/bin/sh
-curl -X POST "$DEFECTDOJO_HOST/api/v2/import-scan/" \
-  -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
-  -F "scan_type=Trivy" \
-  -F "engagement=$DEFECTDOJO_ENGAGEMENT_ID" \
-  -F "product_name=Flask CI App" \
-  -F "file=@trivy-report.json"
-'''
-        }
+        sh '''
+          curl -s -X POST "http://192.168.11.147:8084/api/v2/import-scan/" \
+            -H "Authorization: Token ${DD_TOKEN}" \
+            -F "scan_type=Trivy" \
+            -F "engagement=${DD_ENGAGEMENT_ID}" \
+            -F "product_id=${DD_PRODUCT_ID}" \
+            -F "file=@trivy-report.json"
+        '''
       }
     }
 
     stage('Push to Docker Hub') {
       steps {
-        container('dind') {
-          sh 'echo $DOCKER_HUB_PSW | docker login -u $DOCKER_HUB_USR --password-stdin'
-          sh 'docker push $DOCKER_IMAGE:${BUILD_NUMBER}'
-        }
+        sh '''
+          echo "${DOCKER_HUB_PSW}" | docker login -u "${DOCKER_HUB_USR}" --password-stdin
+          docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+          docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
+          docker push ${IMAGE_NAME}:latest
+        '''
       }
     }
 
     stage('Deploy to Kubernetes') {
       steps {
-        container('dind') {
-          sh '''#!/bin/sh
-echo "$KUBECONFIG_CONTENT" | base64 -d > kubeconfig.yaml
-export KUBECONFIG=$PWD/kubeconfig.yaml
-kubectl apply -f postgres-all.yaml -n flask-app
-kubectl apply -f flask-deployment.yaml -n flask-app
-kubectl apply -f flask-service.yaml -n flask-app
-'''
-        }
+        sh '''
+          # əgər kubeconfig credential olaraq base64-lədirsə:
+          echo "${KUBECONFIG_CONTENT}" | base64 -d > kubeconfig.yaml
+          export KUBECONFIG=$PWD/kubeconfig.yaml
+
+          kubectl apply -f postgres-all.yaml   -n flask-app
+          kubectl apply -f flask-deployment.yaml -n flask-app
+          kubectl apply -f flask-service.yaml    -n flask-app
+        '''
       }
     }
   }
 
   post {
     always {
-      archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
-      deleteDir()
+      archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true
+    }
+    success {
+      echo '✅ OK'
+    }
+    failure {
+      echo '❌ Xəta'
     }
   }
 }
