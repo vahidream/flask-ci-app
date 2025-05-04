@@ -7,6 +7,7 @@ stages:
 
 variables:
 <<<<<<< HEAD
+<<<<<<< HEAD
   DOCKER_IMAGE: "vahidevs/flask-ci-app"
   DEFECTDOJO_HOST: "192.168.11.147"
   KUBE_NAMESPACE: "flask-app"
@@ -16,6 +17,11 @@ variables:
   DEPLOY_PATH: "/home/flask-ci-app"
   DOCKER_IMAGE: "vahidevs/flask-ci-app"
 >>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
+=======
+  DOCKER_IMAGE: "vahidevs/flask-ci-app"
+  DEFECTDOJO_HOST: "192.168.11.147"
+  KUBE_NAMESPACE: "flask-app"
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
 
 build:
   stage: build
@@ -24,16 +30,21 @@ build:
     - docker
   script:
 <<<<<<< HEAD
+<<<<<<< HEAD
     - docker info
 =======
     - echo "🔨 Docker bağlantısı yoxlanılır..."
     - docker info
     - echo "📦 Docker image build olunur..."
 >>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
+=======
+    - docker info
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
     - docker build -t $DOCKER_IMAGE:latest .
 
 sast_scan:
   stage: sast
+<<<<<<< HEAD
 <<<<<<< HEAD
   image: aquasec/trivy:latest
   allow_failure: true
@@ -44,23 +55,26 @@ sast_scan:
       - trivy-report.json
 =======
   image: python:3.11-slim
+=======
+  image: aquasec/trivy:latest
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
   allow_failure: true
-  before_script:
-    - apt-get update && apt-get install -y curl unzip
-    - curl -Lo snyk https://static.snyk.io/cli/latest/snyk-linux
-    - chmod +x snyk && mv snyk /usr/local/bin/
   script:
-    - snyk auth "$SNYK_TOKEN"
-    - snyk code test --json > sast.json || true
+    - trivy image --format json --output trivy-report.json $DOCKER_IMAGE:latest || true
   artifacts:
     paths:
+<<<<<<< HEAD
       - sast.json
 >>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
+=======
+      - trivy-report.json
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
 
 upload_to_defectdojo:
   stage: upload
   image: curlimages/curl:latest
   script:
+<<<<<<< HEAD
 <<<<<<< HEAD
     - |
       curl -X POST "http://$DEFECTDOJO_HOST:8084/api/v2/import-scan/" \
@@ -71,17 +85,20 @@ upload_to_defectdojo:
       -F "file=@trivy-report.json"
 =======
     - echo "📤 Uploading Snyk SAST results to DefectDojo..."
+=======
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
     - |
-      curl -X POST "http://$DEFECTDOJO_HOST:8080/api/v2/import-scan/" \
+      curl -X POST "http://$DEFECTDOJO_HOST:8084/api/v2/import-scan/" \
       -H "Authorization: Token $DEFECTDOJO_API_TOKEN" \
-      -F "scan_type=Snyk SAST" \
-      -F "minimum_severity=Low" \
-      -F "verified=true" \
-      -F "active=true" \
+      -F "scan_type=Container Scan" \
       -F "engagement=$DEFECTDOJO_ENGAGEMENT_ID" \
       -F "product_name=$DEFECTDOJO_PRODUCT_NAME" \
+<<<<<<< HEAD
       -F "file=@sast.json"
 >>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
+=======
+      -F "file=@trivy-report.json"
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
   dependencies:
     - sast_scan
   artifacts:
@@ -94,13 +111,17 @@ docker_push:
     - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
   script:
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     - echo "📦 Docker image push olunur Docker Hub-a..."
 >>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
+=======
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
     - docker push $DOCKER_IMAGE:latest
 
 deploy:
   stage: deploy
+<<<<<<< HEAD
 <<<<<<< HEAD
   image: bitnami/kubectl:latest
   script:
@@ -119,14 +140,14 @@ deploy:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H $DEPLOY_SERVER > ~/.ssh/known_hosts 2>/dev/null
     - chmod 644 ~/.ssh/known_hosts
+=======
+  image: bitnami/kubectl:latest
+>>>>>>> 86e98af (✅ CI/CD pipeline added)
   script:
-    - echo "🚀 Deploy başlayır..."
-    - rsync -avz --delete --exclude=".git" -e "ssh -o StrictHostKeyChecking=no" ./ $DEPLOY_USER@$DEPLOY_SERVER:$DEPLOY_PATH/
-    - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER "
-        cd $DEPLOY_PATH && \
-        kubectl delete -f flask-deployment.yaml --ignore-not-found && \
-        kubectl apply -f flask-deployment.yaml && \
-        kubectl apply -f flask-service.yaml
-      "
+    - echo "$KUBECONFIG_CONTENT" | base64 -d > kubeconfig.yaml
+    - export KUBECONFIG=$PWD/kubeconfig.yaml
+    - kubectl apply -f postgres-all.yaml -n $KUBE_NAMESPACE
+    - kubectl apply -f flask-deployment.yaml -n $KUBE_NAMESPACE
+    - kubectl apply -f flask-service.yaml -n $KUBE_NAMESPACE
 
 >>>>>>> 6af5f45 (🚀 İlk commit: Flask + PostgreSQL + CI/CD)
