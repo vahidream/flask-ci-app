@@ -1,4 +1,3 @@
-
 stages:
   - test
   - sast
@@ -17,6 +16,8 @@ variables:
 test_job:
   stage: test
   image: python:3.11
+  tags:
+    - docker
   script:
     - pip install -r requirements.txt
     - pytest || true
@@ -24,6 +25,8 @@ test_job:
 bandit_scan:
   stage: sast
   image: python:3.11
+  tags:
+    - docker
   script:
     - pip install bandit
     - bandit -r app/ -f json -o bandit-report.json || true
@@ -34,6 +37,8 @@ bandit_scan:
 semgrep_scan:
   stage: sast
   image: returntocorp/semgrep
+  tags:
+    - docker
   script:
     - semgrep scan --config auto --json > semgrep-report.json || true
   artifacts:
@@ -42,7 +47,11 @@ semgrep_scan:
 
 secret_scan:
   stage: secrets
-  image: zricethezav/gitleaks
+  image:
+    name: zricethezav/gitleaks
+    entrypoint: [""]
+  tags:
+    - docker
   script:
     - gitleaks detect --source . --report-format=json --report-path=gitleaks-report.json || true
   artifacts:
@@ -51,8 +60,12 @@ secret_scan:
 
 trivy_scan:
   stage: image_scan
-  image: aquasec/trivy:latest
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   allow_failure: true
+  tags:
+    - docker
   script:
     - trivy image --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-report.json $DOCKER_IMAGE:latest || true
   artifacts:
@@ -61,16 +74,36 @@ trivy_scan:
 
 checkov_scan:
   stage: iac_scan
-  image: bridgecrew/checkov
+  image:
+    name: bridgecrew/checkov
+    entrypoint: [""]
+  tags:
+    - docker
   script:
     - checkov -d . --output json > checkov-report.json || true
   artifacts:
     paths:
       - checkov-report.json
 
+ansible_check:
+  stage: iac_scan
+  image: python:3.9
+  tags:
+    - docker
+  before_script:
+    - pip install checkov ansible-lint
+  script:
+    - checkov -d infrastructure/ansible --framework ansible --output json --output-file-path checkov-ansible-report.json || true
+    - ansible-lint infrastructure/ansible/*.yml || true
+  artifacts:
+    paths:
+      - checkov-ansible-report.json
+
 upload_to_defectdojo:
   stage: upload
   image: curlimages/curl:latest
+  tags:
+    - docker
   script:
     - |
       curl -X POST "http://$DEFECTDOJO_HOST:8084/api/v2/import-scan/" \
@@ -88,7 +121,13 @@ docker_push:
   stage: docker_push
   image: docker:latest
   services:
-    - docker:dind
+    - name: docker:dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - docker
   before_script:
     - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
   script:
@@ -97,10 +136,15 @@ docker_push:
 
 deploy:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  tags:
+    - docker
   script:
     - echo "$KUBECONFIG_CONTENT" | base64 -d > kubeconfig.yaml
     - export KUBECONFIG=$PWD/kubeconfig.yaml
+    - kubectl create namespace $KUBE_NAMESPACE || true
     - kubectl apply -f postgres-all.yaml -n $KUBE_NAMESPACE
     - kubectl apply -f flask-deployment.yaml -n $KUBE_NAMESPACE
     - kubectl apply -f flask-service.yaml -n $KUBE_NAMESPACE

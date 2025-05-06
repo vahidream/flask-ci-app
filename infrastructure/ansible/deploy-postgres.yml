@@ -1,0 +1,8 @@
+---
+- name: Deploy PostgreSQL
+  hosts: localhost
+  tasks:
+    - name: Ensure PostgreSQL is installed
+      apt:
+        name: postgresql
+        state: present
