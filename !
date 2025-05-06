@@ -1,16 +1,35 @@
-127.0.0.1 localhost
-127.0.1.1 server-VMware-Virtual-Platform
+jenkins:
+  systemMessage: "GitOps‐driven Jenkins"
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              id: "dockerhub-creds"
+              description: "Docker Hub"
+              username: "${DOCKER_HUB_USR}"
+              password: "${DOCKER_HUB_PSW}"
+          - string:
+              id: "defectdojo-token"
+              description: "DefectDojo API Token"
+              secret: "${DD_TOKEN}"
+kubernetes:
+  cloud:
+    name: "k8s"
+    serverUrl: "https://kubernetes.default.svc"
+    namespace: "jenkins"
+    jenkinsUrl: "http://jenkins:8080"
+    containerCapStr: "10"
+    templates:
+      - name: "docker"
+        label: "docker"
+        containers:
+          - name: "docker"
+            image: "docker:20-dind"
+            privileged: true
+            volumeMounts:
+              - mountPath: "/var/run/docker.sock"
+                hostPath: "/var/run/docker.sock"
+        workspaceVolume:
+          emptyDirWorkspaceVolume: {}
 
-# The following lines are desirable for IPv6 capable hosts
-::1     ip6-localhost ip6-loopback
-fe00::0 ip6-localnet
-ff00::0 ip6-mcastprefix
-ff02::1 ip6-allnodes
-ff02::2 ip6-allrouters
-192.168.11.139   vahidevs.local
-192.168.11.139  taskify.local
-127.0.1.1    ubuntu1
-127.0.0.1   localhost ubuntu1
-192.168.11.147 master147
-192.168.11.148 worker148
-192.168.11.147  master147  

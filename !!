@@ -1,0 +1,35 @@
+jenkins:
+  systemMessage: "GitOps‐driven Jenkins"
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              id: "dockerhub-creds"
+              description: "Docker Hub"
+              username: "${DOCKER_HUB_USR}"
+              password: "${DOCKER_HUB_PSW}"
+          - string:
+              id: "defectdojo-token"
+              description: "DefectDojo API Token"
+              secret: "${DD_TOKEN}"
+kubernetes:
+  cloud:
+    name: "k8s"
+    serverUrl: "https://kubernetes.default.svc"
+    namespace: "jenkins"
+    jenkinsUrl: "http://jenkins:8080"
+    containerCapStr: "10"
+    templates:
+      - name: "docker"
+        label: "docker"
+        containers:
+          - name: "docker"
+            image: "docker:20-dind"
+            privileged: true
+            volumeMounts:
+              - mountPath: "/var/run/docker.sock"
+                hostPath: "/var/run/docker.sock"
+        workspaceVolume:
+          emptyDirWorkspaceVolume: {}
+

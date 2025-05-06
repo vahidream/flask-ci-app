@@ -1,0 +1,6 @@
+controller:
+  persistence:
+    enabled: true
+    existingClaim: jenkins-home-pvc    # Siz artıq `jenkins-pvc.yaml` ilə bu PVC-ni yaratmısınız
+    size: 10Gi                        # lazım gələrsə ölçünü dəyişin
+

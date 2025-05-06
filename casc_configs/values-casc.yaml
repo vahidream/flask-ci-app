@@ -1,0 +1,63 @@
+controller:
+  JCasC:
+    configScripts:
+      master: |
+        # == System ==
+        jenkins:
+          systemMessage: "GitOps-driven Jenkins on K8s"
+
+        # == Security ==
+        securityRealm:
+          local:
+            allowsSignup: false
+        authorizationStrategy:
+          loggedInUsersCanDoAnything:
+            allowAnonymousRead: false
+
+        # == Credentials ==
+        credentials:
+          system:
+            domainCredentials:
+              - domain:
+                  name: "global"
+                credentials:
+                  - usernamePassword:
+                      id: "dockerhub-creds"
+                      description: "Docker Hub credentials"
+                      scope: GLOBAL
+                      username: "${DOCKERHUB_USERNAME}"
+                      password: "${DOCKERHUB_PASSWORD}"
+                  - string:
+                      id: "defectdojo-token"
+                      description: "DefectDojo API Token"
+                      secret: "${DEFECTDOJO_TOKEN}"
+
+        # == Clouds ==
+        clouds:
+          - kubernetes:
+              name: "k8s"
+              serverUrl: "https://kubernetes.default.svc"
+              namespace: "jenkins"
+              jenkinsUrl: "http://jenkins:8080"
+              containerCapStr: "10"
+              templates:
+                - name: "docker"
+                  label: "docker"
+                  workspaceVolume:
+                    emptyDirWorkspaceVolume: {}
+                  containers:
+                    - name: "dind"
+                      image: "docker:20-dind"
+                      privileged: true
+                      command:
+                        - dockerd
+                        - "--host=unix:///var/run/docker.sock"
+                        - "--host=tcp://0.0.0.0:2375"
+                        - "--storage-driver=overlay2"
+                      volumeMounts:
+                        - mountPath: /var/run/docker.sock
+                          hostPath:
+                            path: /var/run/docker.sock
+                        - mountPath: /home/jenkins/agent
+                          emptyDir: {}
+
