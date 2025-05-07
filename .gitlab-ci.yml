@@ -134,6 +134,7 @@ docker_push:
     - docker build -t $DOCKER_IMAGE:latest .
     - docker push $DOCKER_IMAGE:latest
 
+
 deploy:
   stage: deploy
   image:
@@ -141,13 +142,22 @@ deploy:
     entrypoint: [""]
   tags:
     - docker
+  before_script:
+    - mkdir -p ~/.kube
   script:
     - echo "$KUBECONFIG_CONTENT" | base64 -d > kubeconfig.yaml
-    - export KUBECONFIG=$PWD/kubeconfig.yaml
+    - kubectl config view --kubeconfig=kubeconfig.yaml --raw
+    - export KUBECONFIG=kubeconfig.yaml
+
+    # Test connection (tolerate temporary errors)
     - kubectl version --client
+    - kubectl cluster-info || true
     - kubectl get nodes
-    - kubectl create namespace $KUBE_NAMESPACE || true
-    - kubectl apply -f postgres-all.yaml -n $KUBE_NAMESPACE
-    - kubectl apply -f flask-deployment.yaml -n $KUBE_NAMESPACE
-    - kubectl apply -f flask-service.yaml -n $KUBE_NAMESPACE
+
+    # Deploy
+    - kubectl create namespace $KUBE_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl apply -f postgres-all.yaml -n $KUBE_NAMESPACE --validate=true
+    - kubectl apply -f flask-deployment.yaml -n $KUBE_NAMESPACE --validate=true
+    - kubectl apply -f flask-service.yaml -n $KUBE_NAMESPACE --validate=true
+    - kubectl get all -n $KUBE_NAMESPACE
 
