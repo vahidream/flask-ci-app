@@ -136,14 +136,16 @@ docker_push:
 
 deploy:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
   tags:
     - docker
   script:
     - echo "$KUBECONFIG_CONTENT" | base64 -d > kubeconfig.yaml
     - export KUBECONFIG=$PWD/kubeconfig.yaml
     - kubectl version --client
-    - kubectl config get-contexts
+    - kubectl get nodes
     - kubectl create namespace $KUBE_NAMESPACE || true
     - kubectl apply -f postgres-all.yaml -n $KUBE_NAMESPACE
     - kubectl apply -f flask-deployment.yaml -n $KUBE_NAMESPACE
